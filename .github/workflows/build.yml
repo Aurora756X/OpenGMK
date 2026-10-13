@@ -1,0 +1,41 @@
+name: Compilar OpenGMK 64-bit
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Instalar Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: i686-pc-windows-msvc
+
+    - name: Compilar el emulador principal (64 bits)
+      run: cargo build --release
+
+    - name: Compilar el servidor WoW64 (32 bits)
+      working-directory: gm8emulator-wow64
+      run: cargo build --release --target=i686-pc-windows-msvc
+
+    - name: Preparar carpeta de salida
+      run: |
+        mkdir dist
+        copy target\release\gm8emulator.exe dist\
+        copy gm8emulator-wow64\target\i686-pc-windows-msvc\release\*.exe dist\
+      shell: cmd
+
+    - name: Subir los ejecutables compilados
+      uses: actions/upload-artifact@v4
+      with:
+        name: gm8emulator-windows-64bit
+        path: dist/
